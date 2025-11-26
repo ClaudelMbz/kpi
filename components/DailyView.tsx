@@ -62,7 +62,7 @@ export const DailyView: React.FC<DailyViewProps> = ({ date }) => {
     setIsSaved(false);
   };
 
-  // Handler for copying from previous day
+  // Handler for copying from yesterday
   const copyFromYesterday = () => {
       if (!data) return;
 
@@ -164,7 +164,7 @@ export const DailyView: React.FC<DailyViewProps> = ({ date }) => {
              </div>
           </div>
 
-          <div className="flex items-center gap-6 overflow-x-auto pb-2 md:pb-0">
+          <div className="flex flex-wrap items-center gap-6">
             {/* Dépenses */}
             <div>
                <label className="block text-xs font-medium text-slate-400 mb-1 uppercase tracking-wider">Dépenses</label>
@@ -182,7 +182,7 @@ export const DailyView: React.FC<DailyViewProps> = ({ date }) => {
                </div>
             </div>
 
-            <div className="h-10 w-px bg-slate-200 dark:bg-slate-700"></div>
+            <div className="h-10 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
 
             {/* Objectif */}
             <div>
@@ -200,7 +200,7 @@ export const DailyView: React.FC<DailyViewProps> = ({ date }) => {
                </div>
             </div>
 
-            <div className="h-10 w-px bg-slate-200 dark:bg-slate-700"></div>
+            <div className="h-10 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
 
             {/* KPI Réel */}
             <div>

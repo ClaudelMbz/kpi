@@ -86,15 +86,7 @@ export const Dashboard: React.FC = () => {
         };
     }).filter(c => c.volume > 0); // Only show categories with data
 
-    // Add unknown if exists
-    if (catStats['unknown'].count > 0) {
-        catChartData.push({
-            name: 'Sans Catégorie',
-            color: '#94a3b8', // Slate 400
-            performance: (catStats['unknown'].totalScore / catStats['unknown'].count) * 100,
-            volume: catStats['unknown'].count
-        });
-    }
+    // Removed 'Sans Catégorie' block as requested
 
     return { chartData: trendData, categoryData: catChartData };
   }, [range]);

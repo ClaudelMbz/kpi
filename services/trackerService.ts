@@ -76,6 +76,7 @@ export const saveDayData = (dayData: DayData): void => {
 const createEmptyDay = (date: string): DayData => ({
   date,
   targetKpi: 80, // Default target
+  expense: 0, // Default expense
   tasks: [],
   actualKpi: 0,
 });

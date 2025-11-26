@@ -37,6 +37,7 @@ export interface Task {
 export interface DayData {
   date: string; // ISO string YYYY-MM-DD
   targetKpi: number;
+  expense: number; // Daily expense amount
   tasks: Task[];
   actualKpi: number; // Calculated and stored for caching, but re-calculated on edit
 }

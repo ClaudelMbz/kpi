@@ -4,7 +4,7 @@ import { getDayData, saveDayData, calculateKPI, generateId, getCategories } from
 import { TaskCard } from './TaskCard';
 import { Button } from './ui/Button';
 import { CategoryManager } from './CategoryManager';
-import { Plus, Save, TrendingUp, Calendar, AlertCircle, Copy, Settings2 } from 'lucide-react';
+import { Plus, Save, TrendingUp, Calendar, AlertCircle, Copy, Settings2, CheckCircle2, Loader2, DollarSign, Wallet } from 'lucide-react';
 
 interface DailyViewProps {
   date: string;
@@ -27,7 +27,19 @@ export const DailyView: React.FC<DailyViewProps> = ({ date }) => {
     setIsSaved(true);
   }, [date]);
 
-  // Handler for saving
+  // Auto-save mechanism
+  useEffect(() => {
+    if (!data || isSaved) return;
+
+    const timer = setTimeout(() => {
+      saveDayData(data);
+      setIsSaved(true);
+    }, 2000); // Auto-save after 2 seconds
+
+    return () => clearTimeout(timer);
+  }, [data, isSaved]);
+
+  // Handler for manual saving
   const handleSave = useCallback(() => {
     if (!data) return;
     saveDayData(data);
@@ -118,6 +130,14 @@ export const DailyView: React.FC<DailyViewProps> = ({ date }) => {
     setIsSaved(false);
   };
 
+  // Handler for updating expense
+  const handleExpenseChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!data) return;
+    const val = parseFloat(e.target.value) || 0;
+    setData({ ...data, expense: val });
+    setIsSaved(false);
+  };
+
   if (!data) return <div className="p-8 text-center text-slate-500">Chargement...</div>;
 
   const isTargetMet = tempKpi >= data.targetKpi;
@@ -144,7 +164,27 @@ export const DailyView: React.FC<DailyViewProps> = ({ date }) => {
              </div>
           </div>
 
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-6 overflow-x-auto pb-2 md:pb-0">
+            {/* Dépenses */}
+            <div>
+               <label className="block text-xs font-medium text-slate-400 mb-1 uppercase tracking-wider">Dépenses</label>
+               <div className="flex items-center gap-1">
+                   <input 
+                      type="number" 
+                      min="0"
+                      step="0.01"
+                      value={data.expense || ''}
+                      onChange={handleExpenseChange}
+                      placeholder="0"
+                      className="w-20 font-bold text-2xl bg-transparent border-b border-slate-300 dark:border-slate-600 focus:border-amber-500 focus:ring-0 p-0 text-center text-slate-900 dark:text-white placeholder:text-slate-300"
+                   />
+                   <span className="text-slate-400 font-medium">€</span>
+               </div>
+            </div>
+
+            <div className="h-10 w-px bg-slate-200 dark:bg-slate-700"></div>
+
+            {/* Objectif */}
             <div>
                <label className="block text-xs font-medium text-slate-400 mb-1 uppercase tracking-wider">Objectif</label>
                <div className="flex items-center gap-1">
@@ -162,6 +202,7 @@ export const DailyView: React.FC<DailyViewProps> = ({ date }) => {
 
             <div className="h-10 w-px bg-slate-200 dark:bg-slate-700"></div>
 
+            {/* KPI Réel */}
             <div>
                <label className="block text-xs font-medium text-slate-400 mb-1 uppercase tracking-wider">KPI Réel</label>
                <div className={`flex items-center gap-2 ${isTargetMet ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'}`}>
@@ -177,10 +218,19 @@ export const DailyView: React.FC<DailyViewProps> = ({ date }) => {
                 onClick={handleSave} 
                 disabled={isSaved} 
                 variant={isSaved ? 'secondary' : 'primary'}
-                className="w-full md:w-auto"
+                className={`w-full md:w-auto transition-all duration-300 ${isSaved ? 'text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/50' : ''}`}
               >
-                  <Save size={18} className="mr-2" />
-                  {isSaved ? 'Enregistré' : 'Enregistrer'}
+                  {isSaved ? (
+                    <>
+                      <CheckCircle2 size={18} className="mr-2" />
+                      Enregistré
+                    </>
+                  ) : (
+                    <>
+                      <Loader2 size={18} className="mr-2 animate-spin-slow" />
+                      Sauvegarde...
+                    </>
+                  )}
               </Button>
           </div>
         </div>

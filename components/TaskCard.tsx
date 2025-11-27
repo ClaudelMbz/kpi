@@ -1,9 +1,10 @@
+
 import React from 'react';
 import { Task, SubTask, WeightLevel, TaskStatus, Category } from '../types';
 import { WEIGHT_LABELS, STATUS_LABELS } from '../constants';
 import { Button } from './ui/Button';
 import { Select } from './ui/Select';
-import { Trash2, Plus, CornerDownRight, GripVertical } from 'lucide-react';
+import { Trash2, Plus, CornerDownRight, GripVertical, Clock, Timer } from 'lucide-react';
 import { generateId } from '../services/trackerService';
 
 interface TaskCardProps {
@@ -25,6 +26,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, categories, onUpdate, 
       name: '',
       weightLevel: WeightLevel.MEDIUM,
       status: TaskStatus.NEUTRAL,
+      timeEstimated: 0,
+      timeActual: 0,
     };
     onUpdate({
       ...task,
@@ -94,12 +97,38 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, categories, onUpdate, 
                 <Select
                   value={task.weightLevel}
                   onChange={(e) => onUpdate({ ...task, weightLevel: e.target.value as WeightLevel })}
-                  className="w-40 text-xs"
+                  className="w-32 text-xs"
                 >
                   {Object.entries(WEIGHT_LABELS).map(([key, label]) => (
                     <option key={key} value={key}>{label}</option>
                   ))}
                 </Select>
+
+                {/* Time Inputs for Main Task */}
+                <div className="flex items-center gap-3 border-l border-r border-slate-200 dark:border-slate-700 px-3 mx-1">
+                   <div className="flex items-center gap-1" title="Temps Estimé (min)">
+                       <Clock size={14} className="text-slate-400" />
+                       <input 
+                          type="number" 
+                          placeholder="Est." 
+                          className="w-12 text-xs border-none bg-transparent p-0 focus:ring-0 text-slate-600 dark:text-slate-300 placeholder:text-slate-300"
+                          value={task.timeEstimated || ''}
+                          onChange={(e) => onUpdate({ ...task, timeEstimated: parseFloat(e.target.value) })}
+                       />
+                       <span className="text-[10px] text-slate-400">min</span>
+                   </div>
+                   <div className="flex items-center gap-1" title="Temps Réel (min)">
+                       <Timer size={14} className="text-emerald-500" />
+                       <input 
+                          type="number" 
+                          placeholder="Réel" 
+                          className="w-12 text-xs border-none bg-transparent p-0 focus:ring-0 text-slate-800 dark:text-white font-medium placeholder:text-slate-300"
+                          value={task.timeActual || ''}
+                          onChange={(e) => onUpdate({ ...task, timeActual: parseFloat(e.target.value) })}
+                       />
+                       <span className="text-[10px] text-slate-400">min</span>
+                   </div>
+                </div>
 
                 <div className="flex rounded-md shadow-sm bg-slate-100 dark:bg-slate-900 p-1">
                     {Object.entries(STATUS_LABELS).map(([key, label]) => {
@@ -126,7 +155,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, categories, onUpdate, 
             {hasSubTasks && (
                <p className="text-xs text-orange-600 dark:text-orange-400 font-medium flex items-center gap-1">
                  <CornerDownRight size={12}/>
-                 Poids transféré aux sous-tâches
+                 Poids et temps transférés aux sous-tâches
                </p>
             )}
           </div>
@@ -142,12 +171,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, categories, onUpdate, 
       {/* Subtasks Area */}
       <div className="bg-slate-50/50 dark:bg-slate-900/30 p-4 pt-2 pl-6">
         {task.subTasks.map((sub, index) => (
-          <div key={sub.id} className="flex items-center gap-3 ml-8 mt-3 p-2 bg-white dark:bg-slate-800 rounded border border-slate-100 dark:border-slate-700 shadow-sm">
+          <div key={sub.id} className="flex items-center gap-3 ml-8 mt-3 p-2 bg-white dark:bg-slate-800 rounded border border-slate-100 dark:border-slate-700 shadow-sm flex-wrap">
              <div className="text-slate-300 dark:text-slate-600">
                 <CornerDownRight size={14} />
              </div>
-             <div className="flex-grow grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
-                 <div className="sm:col-span-5">
+             <div className="flex-grow grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                 <div className="md:col-span-4">
                     <input
                         type="text"
                         value={sub.name}
@@ -156,7 +185,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, categories, onUpdate, 
                         className="w-full text-sm border-0 border-b border-slate-200 dark:border-slate-600 focus:border-emerald-500 focus:ring-0 bg-transparent px-0 py-1 text-slate-800 dark:text-slate-200"
                     />
                  </div>
-                 <div className="sm:col-span-3">
+                 <div className="md:col-span-2">
                      <select
                         value={sub.weightLevel}
                         onChange={(e) => updateSubTask(index, { weightLevel: e.target.value as WeightLevel })}
@@ -167,7 +196,33 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, categories, onUpdate, 
                         ))}
                      </select>
                  </div>
-                 <div className="sm:col-span-4 flex justify-end">
+
+                 {/* Time Inputs for Subtask */}
+                 <div className="md:col-span-3 flex items-center gap-2 border-l border-r border-slate-100 dark:border-slate-700 px-2 justify-center">
+                     <div className="flex items-center gap-1" title="Estimé">
+                        <Clock size={12} className="text-slate-400" />
+                        <input 
+                            type="number"
+                            placeholder="0"
+                            className="w-8 text-xs bg-transparent border-none p-0 text-slate-500 dark:text-slate-400 text-right focus:ring-0"
+                            value={sub.timeEstimated || ''}
+                            onChange={(e) => updateSubTask(index, { timeEstimated: parseFloat(e.target.value) })}
+                        />
+                     </div>
+                     <span className="text-slate-300">/</span>
+                     <div className="flex items-center gap-1" title="Réel">
+                        <Timer size={12} className="text-emerald-500" />
+                        <input 
+                            type="number"
+                            placeholder="0"
+                            className="w-8 text-xs bg-transparent border-none p-0 text-slate-800 dark:text-white font-medium text-right focus:ring-0"
+                            value={sub.timeActual || ''}
+                            onChange={(e) => updateSubTask(index, { timeActual: parseFloat(e.target.value) })}
+                        />
+                     </div>
+                 </div>
+
+                 <div className="md:col-span-3 flex justify-end">
                      <div className="flex bg-slate-100 dark:bg-slate-900 rounded p-0.5">
                         {Object.entries(STATUS_LABELS).map(([key, label]) => {
                              const statusKey = key as TaskStatus;

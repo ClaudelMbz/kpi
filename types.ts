@@ -1,3 +1,4 @@
+
 export enum WeightLevel {
   VERY_HIGH = 'VERY_HIGH',
   HIGH = 'HIGH',
@@ -23,6 +24,8 @@ export interface SubTask {
   name: string;
   weightLevel: WeightLevel;
   status: TaskStatus;
+  timeEstimated?: number; // Minutes
+  timeActual?: number;    // Minutes
 }
 
 export interface Task {
@@ -32,6 +35,8 @@ export interface Task {
   weightLevel: WeightLevel;
   status: TaskStatus;
   subTasks: SubTask[];
+  timeEstimated?: number; // Minutes
+  timeActual?: number;    // Minutes
 }
 
 export interface DayData {

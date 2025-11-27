@@ -1,10 +1,11 @@
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { DayData, Task, WeightLevel, TaskStatus, Category } from '../types';
 import { getDayData, saveDayData, calculateKPI, generateId, getCategories } from '../services/trackerService';
 import { TaskCard } from './TaskCard';
 import { Button } from './ui/Button';
 import { CategoryManager } from './CategoryManager';
-import { Plus, Save, TrendingUp, Calendar, AlertCircle, Copy, Settings2, CheckCircle2, Loader2, DollarSign, Wallet } from 'lucide-react';
+import { Plus, Calendar, AlertCircle, Copy, Settings2, CheckCircle2, Loader2, TrendingUp } from 'lucide-react';
 
 interface DailyViewProps {
   date: string;
@@ -55,6 +56,8 @@ export const DailyView: React.FC<DailyViewProps> = ({ date }) => {
       weightLevel: WeightLevel.MEDIUM,
       status: TaskStatus.NEUTRAL,
       subTasks: [],
+      timeEstimated: 0,
+      timeActual: 0
     };
     const updated = { ...data, tasks: [...data.tasks, newTask] };
     setData(updated);
@@ -79,15 +82,17 @@ export const DailyView: React.FC<DailyViewProps> = ({ date }) => {
           return;
       }
 
-      // 3. Clone tasks (Deep copy + ID regeneration + Reset Status)
+      // 3. Clone tasks (Deep copy + ID regeneration + Reset Status & Actual Time)
       const copiedTasks: Task[] = yesterdayData.tasks.map(t => ({
           ...t,
           id: generateId(),
           status: TaskStatus.NEUTRAL,
+          timeActual: 0, // Reset actual time, keep estimated
           subTasks: t.subTasks.map(st => ({
               ...st,
               id: generateId(),
-              status: TaskStatus.NEUTRAL
+              status: TaskStatus.NEUTRAL,
+              timeActual: 0 // Reset actual time
           }))
       }));
 

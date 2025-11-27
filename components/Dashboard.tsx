@@ -1,13 +1,14 @@
+
 import React, { useMemo, useState } from 'react';
-import { getAllData, getCategories, calculateKPI } from '../services/trackerService';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend, BarChart, Bar, Cell } from 'recharts';
+import { getAllData, getCategories } from '../services/trackerService';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, BarChart, Bar, Cell, Legend } from 'recharts';
 import { TaskStatus } from '../types';
 import { STATUS_COEFFICIENTS } from '../constants';
 
 export const Dashboard: React.FC = () => {
   const [range, setRange] = useState<'7' | '30' | 'all'>('7');
 
-  const { chartData, categoryData } = useMemo(() => {
+  const { chartData, categoryData, timeStats } = useMemo(() => {
     const allData = getAllData();
     const categories = getCategories();
     const sortedDates = Object.keys(allData).sort();
@@ -19,22 +20,28 @@ export const Dashboard: React.FC = () => {
        datesToProcess = sortedDates.slice(-days);
     }
 
-    // 1. Prepare Main Trend Data & Expense Data
+    // 1. Prepare Main Trend Data & Expense Data & Time Data
     const trendData = datesToProcess.map(date => {
       const dayData = allData[date];
       
       let doneCount = 0;
       let totalItems = 0;
+      let dayEstimated = 0;
+      let dayActual = 0;
 
       dayData.tasks.forEach(t => {
           if (t.subTasks.length > 0) {
               t.subTasks.forEach(st => {
                   totalItems++;
                   if (st.status === TaskStatus.DONE) doneCount++;
+                  dayEstimated += st.timeEstimated || 0;
+                  dayActual += st.timeActual || 0;
               });
           } else {
               totalItems++;
               if (t.status === TaskStatus.DONE) doneCount++;
+              dayEstimated += t.timeEstimated || 0;
+              dayActual += t.timeActual || 0;
           }
       });
 
@@ -43,8 +50,10 @@ export const Dashboard: React.FC = () => {
         displayDate: new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }),
         actual: dayData.actualKpi,
         target: dayData.targetKpi,
-        expense: dayData.expense || 0, // Ensure expense exists
-        completionRate: totalItems > 0 ? (doneCount / totalItems) * 100 : 0
+        expense: dayData.expense || 0,
+        completionRate: totalItems > 0 ? (doneCount / totalItems) * 100 : 0,
+        timeEstimated: parseFloat((dayEstimated / 60).toFixed(1)), // Convert to hours
+        timeActual: parseFloat((dayActual / 60).toFixed(1)) // Convert to hours
       };
     });
 
@@ -55,23 +64,24 @@ export const Dashboard: React.FC = () => {
     categories.forEach(c => {
         catStats[c.id] = { totalScore: 0, count: 0 };
     });
-    // Unknown category bucket
-    catStats['unknown'] = { totalScore: 0, count: 0 };
+    // Removed 'unknown' initialization to avoid showing it
 
     datesToProcess.forEach(date => {
         const dayTasks = allData[date].tasks;
         dayTasks.forEach(task => {
-            const catId = task.categoryId && categories.find(c => c.id === task.categoryId) ? task.categoryId : 'unknown';
+            const catId = task.categoryId;
             
-            // If task has subtasks, they belong to the parent category
-            if (task.subTasks.length > 0) {
-                task.subTasks.forEach(st => {
-                     catStats[catId].count++;
-                     catStats[catId].totalScore += STATUS_COEFFICIENTS[st.status];
-                });
-            } else {
-                catStats[catId].count++;
-                catStats[catId].totalScore += STATUS_COEFFICIENTS[task.status];
+            // Only process if category exists in our list
+            if (catId && catStats[catId]) {
+                if (task.subTasks.length > 0) {
+                    task.subTasks.forEach(st => {
+                         catStats[catId].count++;
+                         catStats[catId].totalScore += STATUS_COEFFICIENTS[st.status];
+                    });
+                } else {
+                    catStats[catId].count++;
+                    catStats[catId].totalScore += STATUS_COEFFICIENTS[task.status];
+                }
             }
         });
     });
@@ -84,11 +94,17 @@ export const Dashboard: React.FC = () => {
             performance: stats.count > 0 ? (stats.totalScore / stats.count) * 100 : 0,
             volume: stats.count
         };
-    }).filter(c => c.volume > 0); // Only show categories with data
+    }).filter(c => c.volume > 0); 
 
-    // Removed 'Sans Catégorie' block as requested
+    // 3. Overall Time Stats
+    const totalEst = trendData.reduce((acc, curr) => acc + curr.timeEstimated, 0);
+    const totalAct = trendData.reduce((acc, curr) => acc + curr.timeActual, 0);
 
-    return { chartData: trendData, categoryData: catChartData };
+    return { 
+        chartData: trendData, 
+        categoryData: catChartData,
+        timeStats: { totalEst, totalAct }
+    };
   }, [range]);
 
   // Calculations for summary cards
@@ -153,12 +169,15 @@ export const Dashboard: React.FC = () => {
              <p className="text-xs text-slate-400 mt-1">des jours affichés</p>
          </div>
          <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-             <p className="text-sm font-medium text-slate-400 uppercase">Dépenses Totales</p>
-             <p className="text-3xl font-bold text-amber-500 mt-1">{totalExpenses}€</p>
+             <p className="text-sm font-medium text-slate-400 uppercase">Heures Totales</p>
+             <div className="flex items-baseline gap-2 mt-1">
+                <p className="text-3xl font-bold text-slate-800 dark:text-white">{timeStats.totalAct.toFixed(1)}h</p>
+                <span className="text-xs text-slate-500">vs {timeStats.totalEst.toFixed(1)}h est.</span>
+             </div>
          </div>
          <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-             <p className="text-sm font-medium text-slate-400 uppercase">Jours Suivis</p>
-             <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{chartData.length}</p>
+             <p className="text-sm font-medium text-slate-400 uppercase">Dépenses Totales</p>
+             <p className="text-3xl font-bold text-amber-500 mt-1">{totalExpenses}€</p>
          </div>
       </div>
 
@@ -222,8 +241,72 @@ export const Dashboard: React.FC = () => {
             )}
         </div>
 
-        {/* Expense Graph */}
+        {/* Time Analysis Graph */}
         <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 h-[350px]">
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">Temps: Estimé vs Réel</h3>
+            {chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.2} />
+                        <XAxis dataKey="displayDate" stroke="#94a3b8" tick={{fontSize: 12}} tickMargin={10} />
+                        <YAxis stroke="#94a3b8" tick={{fontSize: 11}} unit="h" />
+                        <Tooltip 
+                            cursor={{fill: 'transparent'}}
+                            contentStyle={{ 
+                                borderRadius: '8px', 
+                                border: 'none', 
+                                backgroundColor: '#fff',
+                                color: '#1e293b'
+                            }}
+                        />
+                        <Legend verticalAlign="top" height={36}/>
+                        <Bar dataKey="timeEstimated" name="Estimé (h)" fill="#94a3b8" radius={[4, 4, 0, 0]} barSize={12} />
+                        <Bar dataKey="timeActual" name="Réel (h)" fill="#10b981" radius={[4, 4, 0, 0]} barSize={12} />
+                    </BarChart>
+                </ResponsiveContainer>
+            ) : (
+                <div className="h-full flex items-center justify-center text-slate-400">
+                    Pas de données temporelles.
+                </div>
+            )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+         {/* Category Performance Graph */}
+         <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 h-80">
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">Performance par Catégorie</h3>
+            {categoryData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={categoryData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#334155" opacity={0.2} />
+                        <XAxis type="number" domain={[0, 100]} stroke="#94a3b8" hide />
+                        <YAxis dataKey="name" type="category" stroke="#94a3b8" width={100} tick={{fontSize: 12}} />
+                        <Tooltip 
+                            cursor={{fill: 'transparent'}}
+                            contentStyle={{ 
+                                borderRadius: '8px', 
+                                border: 'none', 
+                                backgroundColor: '#fff',
+                                color: '#1e293b'
+                            }}
+                        />
+                        <Bar dataKey="performance" name="Taux de réussite (%)" radius={[0, 4, 4, 0]} barSize={20}>
+                            {categoryData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
+            ) : (
+                <div className="h-full flex items-center justify-center text-slate-400">
+                    Pas assez de données pour l'analyse par catégorie.
+                </div>
+            )}
+         </div>
+
+          {/* Expense Graph */}
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 h-80">
             <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">Évolution des Dépenses</h3>
             {chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -248,39 +331,7 @@ export const Dashboard: React.FC = () => {
                     Pas de données de dépenses.
                 </div>
             )}
-        </div>
-      </div>
-
-      {/* Category Performance Graph */}
-      <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 h-80">
-        <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">Performance par Catégorie</h3>
-        {categoryData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={categoryData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#334155" opacity={0.2} />
-                    <XAxis type="number" domain={[0, 100]} stroke="#94a3b8" hide />
-                    <YAxis dataKey="name" type="category" stroke="#94a3b8" width={100} tick={{fontSize: 12}} />
-                    <Tooltip 
-                         cursor={{fill: 'transparent'}}
-                         contentStyle={{ 
-                            borderRadius: '8px', 
-                            border: 'none', 
-                            backgroundColor: '#fff',
-                            color: '#1e293b'
-                        }}
-                    />
-                    <Bar dataKey="performance" name="Taux de réussite (%)" radius={[0, 4, 4, 0]} barSize={20}>
-                        {categoryData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                    </Bar>
-                </BarChart>
-            </ResponsiveContainer>
-        ) : (
-            <div className="h-full flex items-center justify-center text-slate-400">
-                Pas assez de données pour l'analyse par catégorie.
-            </div>
-        )}
+         </div>
       </div>
     </div>
   );

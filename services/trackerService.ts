@@ -106,3 +106,53 @@ export const getCategories = (): Category[] => {
 export const saveCategories = (categories: Category[]): void => {
   localStorage.setItem(CATEGORY_STORAGE_KEY, JSON.stringify(categories));
 };
+
+// --- Backup & Restore ---
+
+export const exportData = (): void => {
+  const data = getAllData();
+  const categories = getCategories();
+  
+  const backup = {
+    version: '1.0',
+    exportDate: new Date().toISOString(),
+    data,
+    categories
+  };
+  
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `kpi-master-backup-${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+export const importData = (file: File): Promise<boolean> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const backup = JSON.parse(content);
+        
+        // Basic validation check
+        if (backup.data && Array.isArray(backup.categories)) {
+           localStorage.setItem(STORAGE_KEY, JSON.stringify(backup.data));
+           localStorage.setItem(CATEGORY_STORAGE_KEY, JSON.stringify(backup.categories));
+           resolve(true);
+        } else {
+           reject(new Error("Format de fichier invalide ou corrompu."));
+        }
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = () => reject(new Error("Erreur de lecture du fichier"));
+    reader.readAsText(file);
+  });
+};

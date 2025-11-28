@@ -1,12 +1,14 @@
-
-import React, { useMemo, useState } from 'react';
-import { getAllData, getCategories } from '../services/trackerService';
+import React, { useMemo, useState, useRef } from 'react';
+import { getAllData, getCategories, exportData, importData } from '../services/trackerService';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, BarChart, Bar, Cell, Legend } from 'recharts';
 import { TaskStatus } from '../types';
 import { STATUS_COEFFICIENTS } from '../constants';
+import { Download, Upload, FileJson } from 'lucide-react';
+import { Button } from './ui/Button';
 
 export const Dashboard: React.FC = () => {
   const [range, setRange] = useState<'7' | '30' | 'all'>('7');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { chartData, categoryData, timeStats } = useMemo(() => {
     const allData = getAllData();
@@ -126,34 +128,88 @@ export const Dashboard: React.FC = () => {
       return sum.toFixed(2);
   }, [chartData]);
 
+  // Handle file import
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (confirm("ATTENTION : L'importation va REMPLACER toutes vos données actuelles par celles du fichier. Voulez-vous continuer ?")) {
+        try {
+            await importData(file);
+            alert("Données importées avec succès ! La page va s'actualiser.");
+            window.location.reload();
+        } catch (err) {
+            alert("Erreur lors de l'importation : Format de fichier invalide.");
+            console.error(err);
+        }
+    }
+    // Reset the input so the same file can be selected again if needed
+    e.target.value = '';
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-8">
-      {/* Filters and Title */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+      {/* Hidden File Input for Import */}
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleFileChange} 
+        accept=".json" 
+        className="hidden" 
+      />
+
+      {/* Header and Controls */}
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6 border-b border-slate-200 dark:border-slate-700 pb-6">
         <div>
-           <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Tableau de Bord</h2>
-           <p className="text-slate-500 dark:text-slate-400">Analyse de vos performances</p>
+           <h2 className="text-3xl font-bold text-slate-800 dark:text-white flex items-center gap-3">
+              <span className="bg-emerald-100 dark:bg-emerald-900/50 p-2 rounded-lg text-emerald-600 dark:text-emerald-400">
+                  <FileJson size={32} />
+              </span>
+              Tableau de Bord
+           </h2>
+           <p className="text-slate-500 dark:text-slate-400 mt-2 max-w-xl">
+             Analysez vos performances, suivez vos dépenses et votre temps. Exportez vos données pour ne jamais les perdre.
+           </p>
         </div>
         
-        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-           <button 
-             onClick={() => setRange('7')}
-             className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${range === '7' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
-           >
-             7 Jours
-           </button>
-           <button 
-             onClick={() => setRange('30')}
-             className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${range === '30' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
-           >
-             30 Jours
-           </button>
-           <button 
-             onClick={() => setRange('all')}
-             className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${range === 'all' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
-           >
-             Tout
-           </button>
+        <div className="flex flex-wrap gap-3 w-full xl:w-auto">
+            {/* Export/Import Buttons */}
+            <div className="flex gap-2 mr-4 border-r border-slate-200 dark:border-slate-700 pr-4">
+                 <Button variant="secondary" onClick={handleImportClick} className="flex items-center gap-2" title="Importer une sauvegarde JSON">
+                    <Upload size={16} />
+                    Importer
+                 </Button>
+                 <Button variant="secondary" onClick={exportData} className="flex items-center gap-2" title="Télécharger mes données (JSON)">
+                    <Download size={16} />
+                    Exporter
+                 </Button>
+            </div>
+
+            {/* Range Selector */}
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                <button 
+                    onClick={() => setRange('7')}
+                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${range === '7' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                >
+                    7 Jours
+                </button>
+                <button 
+                    onClick={() => setRange('30')}
+                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${range === '30' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                >
+                    30 Jours
+                </button>
+                <button 
+                    onClick={() => setRange('all')}
+                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${range === 'all' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                >
+                    Tout
+                </button>
+            </div>
         </div>
       </div>
 

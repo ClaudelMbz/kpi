@@ -1,0 +1,5 @@
+{
+  "name": "Daily KPI Tracker",
+  "description": "A performance tracking application allowing users to define weighted daily tasks, handle subtasks, and visualize progress against objectives.",
+  "requestFramePermissions": []
+}

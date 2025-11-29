@@ -1,9 +1,9 @@
 import React, { useMemo, useState, useRef } from 'react';
-import { getAllData, getCategories, exportData, importData, clearAllData } from '../services/trackerService';
+import { getAllData, getCategories, exportData, importData } from '../services/trackerService';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, BarChart, Bar, Cell, Legend } from 'recharts';
 import { TaskStatus } from '../types';
 import { STATUS_COEFFICIENTS } from '../constants';
-import { Download, Upload, FileJson, Trash2, AlertTriangle } from 'lucide-react';
+import { Download, Upload, FileJson } from 'lucide-react';
 import { Button } from './ui/Button';
 
 export const Dashboard: React.FC = () => {
@@ -151,15 +151,6 @@ export const Dashboard: React.FC = () => {
     e.target.value = '';
   };
 
-  const handleClearAll = () => {
-      if (confirm("⚠️ ZONE DE DANGER ⚠️\n\nVoulez-vous vraiment TOUT effacer ?\n\nCette action supprimera définitivement :\n- Toutes les tâches\n- Tout l'historique\n- Toutes les catégories\n\nCette action est irréversible.")) {
-          if (confirm("Dernière confirmation : Êtes-vous vraiment sûr de vouloir tout supprimer et repartir à zéro ?")) {
-              clearAllData();
-              window.location.reload();
-          }
-      }
-  };
-
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Hidden File Input for Import */}
@@ -186,8 +177,8 @@ export const Dashboard: React.FC = () => {
         </div>
         
         <div className="flex flex-wrap gap-3 w-full xl:w-auto">
-            {/* Export/Import/Reset Buttons */}
-            <div className="flex flex-wrap gap-2 mr-4 border-r border-slate-200 dark:border-slate-700 pr-4">
+            {/* Export/Import Buttons */}
+            <div className="flex gap-2 mr-4 border-r border-slate-200 dark:border-slate-700 pr-4">
                  <Button variant="secondary" onClick={handleImportClick} className="flex items-center gap-2" title="Importer une sauvegarde JSON">
                     <Upload size={16} />
                     Importer
@@ -196,14 +187,10 @@ export const Dashboard: React.FC = () => {
                     <Download size={16} />
                     Exporter
                  </Button>
-                 <Button variant="danger" onClick={handleClearAll} className="flex items-center gap-2 ml-2" title="Tout effacer">
-                    <Trash2 size={16} />
-                    <span className="hidden sm:inline">Réinitialiser</span>
-                 </Button>
             </div>
 
             {/* Range Selector */}
-            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg h-fit">
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
                 <button 
                     onClick={() => setRange('7')}
                     className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${range === '7' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}

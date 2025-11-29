@@ -107,7 +107,7 @@ export const saveCategories = (categories: Category[]): void => {
   localStorage.setItem(CATEGORY_STORAGE_KEY, JSON.stringify(categories));
 };
 
-// --- Backup & Restore ---
+// --- Backup & Restore & Reset ---
 
 export const exportData = (): void => {
   const data = getAllData();
@@ -155,4 +155,9 @@ export const importData = (file: File): Promise<boolean> => {
     reader.onerror = () => reject(new Error("Erreur de lecture du fichier"));
     reader.readAsText(file);
   });
+};
+
+export const clearAllData = (): void => {
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(CATEGORY_STORAGE_KEY);
 };
